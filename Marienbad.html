@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Security: Disable external network requests -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'; img-src 'none'; font-src 'none'; object-src 'none';">
+
+    <title>Nim / Marienbad Trainer</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            background: #121212; color: #e0e0e0; 
+            padding: 15px; margin: 0; min-height: 100vh; justify-content: center; 
+        }
+        .card { 
+            background: #1e1e1e; padding: 25px; border-radius: 16px; 
+            text-align: center; max-width: 450px; width: 100%; 
+            box-sizing: border-box; border: 1px solid #333; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+        }
+        
+        /* Mode Switcher Tabs */
+        .tab-group { display: flex; gap: 8px; margin-bottom: 20px; background: #121212; padding: 4px; border-radius: 10px; }
+        .tab-btn { 
+            flex: 1; padding: 10px; font-size: 14px; font-weight: bold; border: none; 
+            border-radius: 8px; background: transparent; color: #888; cursor: pointer; transition: 0.2s; 
+        }
+        .tab-btn.active { background: #333; color: #fff; }
+
+        .game-board { display: flex; flex-direction: column; gap: 15px; margin: 10px 0 20px 0; align-items: center; min-height: 200px; justify-content: center; }
+        
+        .pile-row { display: flex; gap: 8px; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; min-width: 220px; transition: 0.3s; }
+        
+        .circle { 
+            width: 32px; height: 32px; border-radius: 50%; 
+            background: #d35400; 
+            box-shadow: 0 3px 0 #a04000; cursor: pointer; 
+            transition: all 0.1s ease; border: 2px solid transparent;
+        }
+        
+        .circle:active { transform: scale(0.9); }
+        .circle.selected { background: #e74c3c; box-shadow: 0 3px 0 #c0392b; opacity: 0.6; transform: scale(0.95); }
+        .pile-row.disabled { opacity: 0.25; pointer-events: none; filter: grayscale(0.5); }
+
+        #feedback { margin: 15px 0; font-weight: bold; min-height: 1.5em; font-size: 1.2em; letter-spacing: 1px; }
+        
+        button.action-btn { padding: 16px; font-size: 18px; cursor: pointer; border: none; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.2s; outline: none; -webkit-tap-highlight-color: transparent; }
+        .btn-check { background: #27ae60; color: white; display: none; }
+        .btn-skip { background: #2a2a2a; color: #888; }
+        .btn-next { background: #3498db; color: white; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <!-- Mode Switcher -->
+    <div class="tab-group">
+        <button id="modeStandard" class="tab-btn active" onclick="switchMode('standard')">Standard Nim</button>
+        <button id="modeEndgame" class="tab-btn" onclick="switchMode('endgame')">Endgame Trainer</button>
+    </div>
+
+    <div class="game-board" id="gameBoard"></div>
+    
+    <div id="feedback"></div>
+    <button id="checkBtn" class="action-btn btn-check" onclick="confirmMove()">Remove Selected</button>
+    <button id="skipBtn" class="action-btn btn-skip" onclick="generateTask()">Skip Puzzle</button>
+    <button id="nextBtn" class="action-btn btn-next" onclick="generateTask()">Next Puzzle</button>
+</div>
+
+<script>
+    let currentMode = 'standard'; // 'standard' or 'endgame'
+    const patterns = {
+        3: [[1, 2, 3], [1, 4, 5], [2, 4, 6], [3, 5, 6]],
+        4: [[1, 3, 5, 7], [1, 3, 4, 6], [1, 2, 5, 6], [1, 2, 4, 7]]
+    };
+    const rowLimits = [1, 3, 5, 7]; 
+    
+    let currentTask = [];
+    let selectedPileIdx = -1;
+    let selectedCount = 0;
+
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('modeStandard').className = mode === 'standard' ? 'tab-btn active' : 'tab-btn';
+        document.getElementById('modeEndgame').className = mode === 'endgame' ? 'tab-btn active' : 'tab-btn';
+        generateTask();
+    }
+
+    function generateTask() {
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('checkBtn').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('skipBtn').style.display = 'block';
+        selectedPileIdx = -1; selectedCount = 0;
+
+        if (currentMode === 'standard') {
+            generateStandardTask();
+        } else {
+            generateEndgameTask();
+        }
+        render();
+    }
+
+    function generateStandardTask() {
+        let task = [];
+        let ok = false;
+        while (!ok) {
+            const type = Math.random() > 0.5 ? 4 : 3;
+            const base = [...patterns[type][Math.floor(Math.random() * patterns[type].length)]];
+            task = [...base];
+            let idx = Math.floor(Math.random() * task.length);
+            let limit = (task.length === 4) ? rowLimits[idx] : rowLimits[idx + 1];
+
+            if (task[idx] < limit) {
+                task[idx] += Math.floor(Math.random() * (limit - task[idx])) + 1;
+            } else {
+                let newVal = Math.floor(Math.random() * task[idx]);
+                if (type === 4 && newVal === 0) newVal = 1; 
+                task[idx] = newVal;
+            }
+            if (task.reduce((a, b) => a ^ b, 0) !== 0) ok = true;
+        }
+        currentTask = task.sort(() => Math.random() - 0.5);
+    }
+
+    function generateEndgameTask() {
+        let task = [];
+        const numOnes = Math.floor(Math.random() * 3) + 1; 
+        const bigValue = Math.floor(Math.random() * 5) + 2;
+        for(let i = 0; i < numOnes; i++) task.push(1);
+        task.push(bigValue);
+        currentTask = task.sort(() => Math.random() - 0.5);
+    }
+
+    function render() {
+        const board = document.getElementById('gameBoard');
+        board.innerHTML = '';
+        
+        currentTask.forEach((count, pileIdx) => {
+            if (count === 0 && document.getElementById('nextBtn').style.display !== 'block') return;
+            
+            const row = document.createElement('div');
+            row.className = 'pile-row';
+            if (selectedPileIdx !== -1 && selectedPileIdx !== pileIdx) {
+                row.classList.add('disabled');
+            }
+
+            for (let i = 0; i < count; i++) {
+                const circle = document.createElement('div');
+                circle.className = 'circle';
+                if (selectedPileIdx === pileIdx && i >= (count - selectedCount)) {
+                    circle.classList.add('selected');
+                }
+                circle.onclick = () => handleCircleClick(pileIdx, i, count);
+                row.appendChild(circle);
+            }
+            board.appendChild(row);
+        });
+    }
+
+    function handleCircleClick(pileIdx, circleIdx, totalInPile) {
+        if (document.getElementById('nextBtn').style.display === 'block') return;
+        if (selectedPileIdx !== -1 && selectedPileIdx !== pileIdx) return;
+
+        let potentialSelectedCount = totalInPile - circleIdx;
+
+        if (selectedPileIdx === pileIdx && selectedCount === potentialSelectedCount) {
+            selectedPileIdx = -1; selectedCount = 0;
+            document.getElementById('checkBtn').style.display = 'none';
+        } else {
+            selectedPileIdx = pileIdx;
+            selectedCount = potentialSelectedCount;
+            document.getElementById('checkBtn').style.display = 'block';
+        }
+        render();
+    }
+
+    function confirmMove() {
+        if (selectedPileIdx === -1 || selectedCount === 0) return;
+        let nextState = [...currentTask];
+        nextState[selectedPileIdx] -= selectedCount;
+        
+        let isCorrect = false;
+
+        if (currentMode === 'standard') {
+            // Standard Nim condition: XOR sum equals 0
+            isCorrect = (nextState.reduce((a, b) => a ^ b, 0) === 0);
+        } else {
+            // Misère Endgame condition: Leave an odd number of heaps of size 1
+            const active = nextState.filter(x => x > 0);
+            const onlyOnes = active.every(x => x === 1);
+            isCorrect = onlyOnes && (active.length % 2 !== 0);
+        }
+        
+        if (isCorrect) {
+            document.getElementById('feedback').innerText = "CORRECT!";
+            document.getElementById('feedback').style.color = "#2ecc71";
+            currentTask = nextState;
+            document.getElementById('nextBtn').style.display = 'block';
+            document.getElementById('checkBtn').style.display = 'none';
+            document.getElementById('skipBtn').style.display = 'none';
+            selectedPileIdx = -1; selectedCount = 0;
+            render();
+        } else {
+            document.getElementById('feedback').innerText = "TRY AGAIN";
+            document.getElementById('feedback').style.color = "#e74c3c";
+            selectedPileIdx = -1; selectedCount = 0;
+            render();
+        }
+    }
+
+    window.onload = generateTask;
+</script>
+</body>
+</html>
