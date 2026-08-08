@@ -4,7 +4,7 @@ An interactive, single-file trainer for mastering the winning strategy of the ma
 
 ---
 
-## 🎬 Background & User Experience
+## 🎬 Background & Player Experience
 
 In the movie, the protagonist challenges various hotel guests to a matchstick game with the classic **1–3–5–7** layout and **always wins**, regardless of who plays first. 
 
