@@ -37,8 +37,8 @@ $$R_1 \oplus R_2 \oplus R_3 \oplus R_4 = 0$$
 - **Two identical rows in a 4-row state:** Equalize the other two rows 
 
 #### You need to aim for the following winning positions (the order does not matter):
-* **3-Row Patterns:** `1-2-3`, `1-4-5`, `2-4-6`, `2-5-7`, `3-4-7`, `3-5-6`
-* **4-Row Patterns:** `1-2-4-7`, `1-2-5-6`, `1-3-4-6`
+*  `1-2-3`, `1-4-5`, `2-4-6`, `2-5-7`, `3-4-7`, `3-5-6`
+*  `1-2-4-7`, `1-2-5-6`, `1-3-4-6`
 
 ---
 
