@@ -32,8 +32,8 @@ Your main goal on every move is to leave the board with a **Nim-sum (XOR-sum) eq
 
 $$R_1 \oplus R_2 \oplus R_3 \oplus R_4 = 0$$
 
-#### Quick Heuristics:
-- **2 equal rows in a 3-row state:** Completely eliminate the 3rd row 
+#### Quick Heuristics (trivial):
+- **2 equal rows in a 3-row state:** Completely remove the 3rd row 
 - **2 equal rows in a 4-row state:** Equalize the other two rows
 - **only 2 unequal rows:** Equalize them 
 
